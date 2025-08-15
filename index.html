@@ -1,72 +1,447 @@
 <!doctype html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pocket RoK (Web)</title>
-    <style>
-      html, body { margin:0; padding:0; height:100%; background:#0f1221; color:#e9ecf1; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-      #game { display:flex; height:100%; }
-      .sidebar { width:320px; background:#12162b; border-right:1px solid #1e2446; padding:12px; box-sizing: border-box; }
-      .panel { background:#0e1430; border:1px solid #20264c; border-radius:12px; padding:12px; margin-bottom:12px; }
-      .panel h3 { margin:0 0 8px 0; font-size:16px; letter-spacing:0.3px; }
-      .row { display:flex; align-items:center; justify-content:space-between; font-size:14px; margin:6px 0; }
-      button { width:100%; margin:6px 0; padding:10px 12px; border-radius:10px; border:1px solid #2a3770; background:#1a2558; color:#e9ecf1; cursor:pointer; }
-      button:disabled { opacity:0.6; cursor:not-allowed; }
-      .small { font-size:12px; opacity:0.8; }
-      a, a:visited { color:#86a1ff; }
-      .footer { font-size:12px; opacity:0.7; text-align:center; margin-top:8px; }
-      canvas { display:block; }
-    </style>
-  </head>
-  <body>
-    <div id="game">
-      <div class="sidebar">
-        <div class="panel" id="resources">
-          <h3>Resources</h3>
-          <div class="row"><span>Food</span><span id="r-food">0</span></div>
-          <div class="row"><span>Wood</span><span id="r-wood">0</span></div>
-          <div class="row"><span>Stone</span><span id="r-stone">0</span></div>
-          <div class="row"><span>Gold</span><span id="r-gold">0</span></div>
-          <div class="row small"><span>Prod/hr</span><span id="r-rate">0/0/0/0</span></div>
+<head>
+  <meta charset="utf-8" />
+  <title>Pocket RoK — Web (10x10)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg:#0f1221; --panel:#0e1430; --accent:#86a1ff; --muted:#9aa8d6;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);color:#e9ecf1;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+    #app{display:flex;height:100%}
+    .sidebar{width:340px;padding:14px;box-sizing:border-box;border-right:1px solid #1e2446;background:#0d1330}
+    .panel{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px;border:1px solid #20264c}
+    .panel h3{margin:0 0 8px 0;font-size:16px}
+    .row{display:flex;justify-content:space-between;align-items:center;margin:6px 0;font-size:14px}
+    button{width:100%;padding:10px;border-radius:8px;border:none;background:#18204e;color:#e9ecf1;cursor:pointer}
+    button.small{padding:6px;width:auto}
+    button:disabled{opacity:0.55;cursor:not-allowed}
+    .muted{color:var(--muted);font-size:13px}
+    #game {flex:1;display:flex;align-items:center;justify-content:center}
+    #phaser {width:880px;height:640px;box-shadow:0 6px 30px rgba(0,0,0,0.6);border-radius:8px;overflow:hidden;background:#081026}
+    .footer{font-size:12px;text-align:center;color:var(--muted);margin-top:8px}
+    .hudsmall{font-size:13px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="sidebar">
+      <div class="panel">
+        <h3>Resources</h3>
+        <div class="row"><span>Food</span><span id="r-food">0</span></div>
+        <div class="row"><span>Wood</span><span id="r-wood">0</span></div>
+        <div class="row"><span>Stone</span><span id="r-stone">0</span></div>
+        <div class="row"><span>Gold</span><span id="r-gold">0</span></div>
+        <div class="row hudsmall"><span>Prod/hr</span><span id="r-rate">0 / 0 / 0 / 0</span></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
           <button id="saveBtn">Save</button>
-          <button id="resetBtn">Reset</button>
+          <button id="resetBtn" style="background:#6b2b2b">Reset</button>
         </div>
-
-        <div class="panel" id="buildings">
-          <h3>City (CH <span id="ch-level">1</span>)</h3>
-          <div class="row"><span>Farm (L<span id="b-farm-lvl">1</span>)</span><button id="up-farm">Upgrade</button></div>
-          <div class="row"><span>Lumber (L<span id="b-lumber-lvl">1</span>)</span><button id="up-lumber">Upgrade</button></div>
-          <div class="row"><span>Quarry (L<span id="b-quarry-lvl">1</span>)</span><button id="up-quarry">Upgrade</button></div>
-          <div class="row"><span>Gold Mine (L<span id="b-gold-lvl">1</span>)</span><button id="up-gold">Upgrade</button></div>
-          <div class="row"><span>Barracks (L<span id="b-barracks-lvl">1</span>)</span><button id="up-barracks">Upgrade</button></div>
-          <button id="up-cityhall">Upgrade City Hall</button>
-          <div class="small" id="cost-text"></div>
-        </div>
-
-        <div class="panel" id="army">
-          <h3>Army</h3>
-          <div class="row"><span>Inf: <span id="a-inf">0</span></span><button id="t-inf">Train 10</button></div>
-          <div class="row"><span>Arch: <span id="a-arch">0</span></span><button id="t-arch">Train 10</button></div>
-          <div class="row"><span>Cav: <span id="a-cav">0</span></span><button id="t-cav">Train 10</button></div>
-          <div class="small" id="train-cost"></div>
-        </div>
-
-        <div class="panel" id="scout">
-          <h3>World</h3>
-          <button id="scoutBtn">Send Scout (Reveal)</button>
-          <div class="small">Click a revealed camp tile and press <b>Attack</b> below.</div>
-          <button id="attackBtn" disabled>Attack Camp</button>
-          <div class="small" id="battle-log"></div>
-        </div>
-
-        <div class="footer">Pocket RoK (Web) — Phaser.js single-file MVP</div>
       </div>
 
-      <div id="phaser"></div>
+      <div class="panel">
+        <h3>City (CH <span id="ch-level">1</span>)</h3>
+        <div class="row"><span>Farm (L<span id="b-farm">1</span>)</span><button id="up-farm">Upgrade</button></div>
+        <div class="row"><span>Lumber (L<span id="b-lumber">1</span>)</span><button id="up-lumber">Upgrade</button></div>
+        <div class="row"><span>Quarry (L<span id="b-quarry">1</span>)</span><button id="up-quarry">Upgrade</button></div>
+        <div class="row"><span>Gold Mine (L<span id="b-gold">1</span>)</span><button id="up-gold">Upgrade</button></div>
+        <div class="row"><span>Barracks (L<span id="b-barracks">1</span>)</span><button id="up-barracks">Upgrade</button></div>
+        <div style="margin-top:8px">
+          <button id="up-cityhall">Upgrade City Hall</button>
+        </div>
+        <div class="muted hudsmall" id="next-cost" style="margin-top:8px"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Army</h3>
+        <div class="row"><span>Infantry <b id="a-inf">0</b></span><button id="t-inf">Train 10</button></div>
+        <div class="row"><span>Archers <b id="a-arch">0</b></span><button id="t-arch">Train 10</button></div>
+        <div class="row"><span>Cavalry <b id="a-cav">0</b></span><button id="t-cav">Train 10</button></div>
+        <div class="muted hudsmall" id="train-cost" style="margin-top:8px"></div>
+      </div>
+
+      <div class="panel">
+        <h3>World</h3>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button id="scoutBtn">Send Scout (5G)</button>
+          <button id="attackBtn" disabled style="background:#4a1b1b">Attack</button>
+        </div>
+        <div class="muted hudsmall">Click a revealed tile to select a camp.<br/>Green square = scout.</div>
+      </div>
+
+      <div class="footer">Pocket RoK — 10×10 map — No external assets (SVG icons embedded)</div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
-    <script src="main.js"></script>
-  </body>
+    <div id="game"><div id="phaser"></div></div>
+  </div>
+
+  <!-- Phaser 3 from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+
+  <script>
+  /* ------------------------------
+     Single-file Pocket RoK (10x10)
+     - Uses embedded SVG images as data URLs (safe/public-style)
+     - Small playable MVP
+     ------------------------------*/
+
+  const TILE = 48;
+  const MAP_W = 10, MAP_H = 10;
+  const GAME_W = 880, GAME_H = 640;
+  const SAVE_KEY = "pocketrok10x10-v1";
+
+  // State
+  const state = {
+    resources: { food: 300, wood: 300, stone: 120, gold: 60 },
+    rates: { food: 40, wood: 40, stone: 20, gold: 10 }, // per hour (will be recalculated)
+    buildings: { cityhall:1, farm:1, lumber:1, quarry:1, gold:1, barracks:1 },
+    army: { inf:0, arch:0, cav:0 },
+    map: { revealed: [], camps: [], scoutPos: {x:2,y:2}, select: null }
+  };
+
+  // small utility to create a data:url from an SVG string
+  function svgDataUrl(svgStr){
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svgStr);
+  }
+
+  // Simple SVG icons (small, stylized) - free/public style
+  const SVGs = {
+    farm: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect fill='#2b6a25' x='0' y='36' width='64' height='28'/><path fill='#ffdd57' d='M8 36 L32 8 L56 36 Z'/><rect fill='#8b5a2b' x='22' y='36' width='20' height='12' rx='2'/></svg>`,
+    lumber: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect fill='#2b5a2b' x='28' y='14' width='8' height='40' rx='3'/><path fill='#3aa34a' d='M8 34 C20 10 44 10 56 34 Z'/></svg>`,
+    quarry: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><polygon fill='#9aa0a6' points='6,58 32,8 58,58'/><rect fill='#6f7478' x='18' y='40' width='28' height='12' rx='2'/></svg>`,
+    gold: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle fill='#ffd24d' cx='32' cy='28' r='16'/><rect fill='#b07f07' x='18' y='42' width='28' height='10' rx='3'/></svg>`,
+    barracks: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect fill='#7b3f3f' x='10' y='28' width='44' height='24' rx='3'/><path fill='#c94f4f' d='M8 28 L32 8 L56 28 Z'/></svg>`,
+    cityhall: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect fill='#2d4a6b' x='8' y='28' width='48' height='28' rx='3'/><path fill='#3f74a8' d='M8 28 L32 6 L56 28 Z'/></svg>`,
+    scout: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle fill='#3ddc84' cx='32' cy='22' r='8'/><rect fill='#2f5c5c' x='22' y='32' width='20' height='18' rx='4'/></svg>`,
+    camp: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='#8b2b2b' d='M10 54 L32 12 L54 54 Z'/><rect fill='#4a1b1b' x='20' y='44' width='24' height='6' rx='2'/></svg>`,
+    inf: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect fill='#5a5a9a' x='24' y='18' width='16' height='28' rx='4'/><rect fill='#c9c9e8' x='28' y='22' width='8' height='8' rx='2'/></svg>`,
+    arch: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path fill='#6b8f3f' d='M32 12 L44 40 L20 40 Z'/><rect fill='#3a5a21' x='28' y='40' width='8' height='12' rx='2'/></svg>`,
+    cav: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect fill='#6b3f1f' x='14' y='28' width='36' height='20' rx='4'/><circle fill='#d9b89a' cx='32' cy='20' r='8'/></svg>`
+  };
+
+  // helper: convert SVG map to data URLs used by Phaser loader
+  function makeAssets(scene){
+    for(const k in SVGs){
+      const url = svgDataUrl(SVGs[k]);
+      scene.load.image(k, url);
+    }
+  }
+
+  // Costs functions
+  function upgradeCost(key, lvl){
+    const mul = 1 + (lvl-1)*0.33;
+    switch(key){
+      case 'cityhall': return {food:220*mul, wood:220*mul, stone:160*mul, gold:90*mul};
+      case 'farm': return {food:120*mul, wood:80*mul, stone:40*mul, gold:0};
+      case 'lumber': return {food:80*mul, wood:120*mul, stone:40*mul, gold:0};
+      case 'quarry': return {food:100*mul, wood:100*mul, stone:80*mul, gold:0};
+      case 'gold': return {food:120*mul, wood:120*mul, stone:60*mul, gold:40*mul};
+      case 'barracks': return {food:140*mul, wood:140*mul, stone:80*mul, gold:20*mul};
+    }
+    return {food:0,wood:0,stone:0,gold:0};
+  }
+  const trainCost = { inf:{food:30,wood:10}, arch:{food:10,wood:30}, cav:{food:25,wood:15} };
+
+  // recalc rates from building levels
+  function recalcRates(){
+    const b = state.buildings;
+    state.rates.food = b.farm * 40;
+    state.rates.wood = b.lumber * 40;
+    state.rates.stone = b.quarry * 30;
+    state.rates.gold = b.gold * 15;
+  }
+
+  // Save/load
+  function saveState(){ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); log('Saved'); }
+  function loadState(){
+    const s = localStorage.getItem(SAVE_KEY);
+    if(!s) return;
+    try { const obj = JSON.parse(s);
+      Object.assign(state.resources, obj.resources || {});
+      Object.assign(state.buildings, obj.buildings || {});
+      Object.assign(state.army, obj.army || {});
+      state.map = obj.map || state.map;
+    } catch(e){}
+  }
+
+  // UI helpers
+  function fmt(n){ return Math.floor(n).toLocaleString(); }
+  function canAfford(c){
+    return state.resources.food>= (c.food||0) && state.resources.wood>=(c.wood||0) && state.resources.stone>=(c.stone||0) && state.resources.gold>=(c.gold||0);
+  }
+  function spend(c){ state.resources.food-=Math.floor(c.food||0); state.resources.wood-=Math.floor(c.wood||0); state.resources.stone-=Math.floor(c.stone||0); state.resources.gold-=Math.floor(c.gold||0); }
+
+  // Create Phaser scene
+  class MainScene extends Phaser.Scene {
+    constructor(){ super({key:'main'}); }
+    preload(){
+      makeAssets(this);
+    }
+    create(){
+      // background panel
+      this.add.rectangle(GAME_W/2, GAME_H/2, GAME_W, GAME_H, 0x081026);
+      // map origin (center-left so there's room in UI)
+      this.originX = 40; this.originY = 40;
+      this.tileGroup = this.add.group();
+      // init map arrays
+      state.map.revealed = Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
+      // place camps randomly
+      state.map.camps = [];
+      for(let i=0;i<10;i++){
+        const x = Phaser.Math.Between(2, MAP_W-2);
+        const y = Phaser.Math.Between(2, MAP_H-2);
+        state.map.camps.push({x,y,str: Phaser.Math.Between(12,40)});
+      }
+
+      // draw grid tiles
+      this.tiles = [];
+      for(let y=0;y<MAP_H;y++){
+        for(let x=0;x<MAP_W;x++){
+          const gx = this.originX + x*TILE;
+          const gy = this.originY + y*TILE;
+          const bg = this.add.rectangle(gx, gy, TILE-2, TILE-2, 0x15324b).setOrigin(0).setStrokeStyle(1,0x24567f);
+          bg.setInteractive();
+          bg.on('pointerdown', ()=> this.onTileClick(x,y));
+          this.tiles.push({x,y,rect:bg});
+        }
+      }
+
+      // graphics for fog and icons
+      this.fog = this.add.graphics();
+      this.campLayer = this.add.group();
+
+      // reveal around scout start
+      this.reveal(state.map.scoutPos.x, state.map.scoutPos.y, 2);
+
+      // resource tick (every 1s)
+      recalcRates();
+      this.time.addEvent({delay:1000, loop:true, callback: ()=> {
+        const hr=1/3600;
+        state.resources.food += state.rates.food * hr;
+        state.resources.wood += state.rates.wood * hr;
+        state.resources.stone += state.rates.stone * hr;
+        state.resources.gold += state.rates.gold * hr;
+        updateUI();
+      }});
+
+      // draw loop
+      this.events.on('update', ()=> {
+        this.drawFog();
+        this.drawCamps();
+      });
+
+      // UI button hooks
+      document.getElementById('saveBtn').onclick = ()=> saveState();
+      document.getElementById('resetBtn').onclick = ()=> { localStorage.removeItem(SAVE_KEY); location.reload(); };
+      document.getElementById('scoutBtn').onclick = ()=> this.scout();
+      document.getElementById('attackBtn').onclick = ()=> this.attackSelected();
+
+      const pairs = [
+        ['farm','b-farm','up-farm'],
+        ['lumber','b-lumber','up-lumber'],
+        ['quarry','b-quarry','up-quarry'],
+        ['gold','b-gold','up-gold'],
+        ['barracks','b-barracks','up-barracks']
+      ];
+      pairs.forEach(([key,elId,btnId])=>{
+        document.getElementById(btnId).onclick = ()=> this.upgrade(key, elId);
+      });
+      document.getElementById('up-cityhall').onclick = ()=> this.upgrade('cityhall','ch-level');
+
+      document.getElementById('t-inf').onclick = ()=> this.train('inf',10);
+      document.getElementById('t-arch').onclick = ()=> this.train('arch',10);
+      document.getElementById('t-cav').onclick = ()=> this.train('cav',10);
+
+      loadState(); recalcRates(); updateUI();
+    }
+
+    onTileClick(x,y){
+      if(!state.map.revealed[y][x]) return;
+      const camp = state.map.camps.find(c=>c.x===x && c.y===y);
+      state.map.select = camp ? {type:'camp',x,y,str:camp.str} : {type:'tile',x,y};
+      document.getElementById('attackBtn').disabled = !(camp);
+    }
+
+    drawCamps(){
+      // clear group
+      this.campLayer.clear(true,true);
+      state.map.camps.forEach(c=>{
+        if(state.map.revealed[c.y][c.x]){
+          const gx = this.originX + c.x*TILE, gy = this.originY + c.y*TILE;
+          const img = this.add.image(gx+TILE/2, gy+TILE/2, 'camp').setDisplaySize(TILE-8, TILE-8);
+          this.campLayer.add(img);
+          // draw strength small text
+          this.add.text(gx+4, gy+2, `${c.str}`, {font:'12px Inter', fill:'#ffd7d7'}).setDepth(50);
+        }
+      });
+    }
+
+    drawFog(){
+      this.fog.clear();
+      for(let y=0;y<MAP_H;y++){
+        for(let x=0;x<MAP_W;x++){
+          if(!state.map.revealed[y][x]){
+            const gx = this.originX + x*TILE, gy = this.originY + y*TILE;
+            this.fog.fillStyle(0x081226, 0.96);
+            this.fog.fillRect(gx, gy, TILE-2, TILE-2);
+          }
+        }
+      }
+      // draw scout pos
+      const s = state.map.scoutPos;
+      const gx = this.originX + s.x*TILE, gy = this.originY + s.y*TILE;
+      this.fog.fillStyle(0x18e39b, 1);
+      this.fog.fillRect(gx+8, gy+8, TILE-16, TILE-16);
+    }
+
+    reveal(x,y,r){
+      for(let j=-r;j<=r;j++){
+        for(let i=-r;i<=r;i++){
+          const nx=x+i, ny=y+j;
+          if(nx>=0 && ny>=0 && nx<MAP_W && ny<MAP_H) state.map.revealed[ny][nx] = true;
+        }
+      }
+    }
+
+    scout(){
+      // find a nearby unrevealed tile; spend 5 gold
+      const fee = {gold:5};
+      if(!canAfford(fee)){ log('Need 5 gold to scout'); return; }
+      // pick a random unrevealed tile
+      let candidates = [];
+      for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) if(!state.map.revealed[y][x]) candidates.push({x,y});
+      if(candidates.length===0){ log('World fully revealed'); return; }
+      spend(fee);
+      // move scout towards a selected candidate by up to 3 tiles
+      const pick = Phaser.Utils.Array.GetRandom(candidates);
+      const s = state.map.scoutPos;
+      const dirX = Math.sign(pick.x - s.x), dirY = Math.sign(pick.y - s.y);
+      s.x = Phaser.Math.Clamp(s.x + dirX*3, 0, MAP_W-1);
+      s.y = Phaser.Math.Clamp(s.y + dirY*3, 0, MAP_H-1);
+      this.reveal(s.x, s.y, 2);
+      updateUI();
+      log('Scout moved and revealed area');
+    }
+
+    upgrade(key, elId){
+      const next = (state.buildings[key]||0) + 1;
+      if(key!=='cityhall' && next > state.buildings.cityhall){
+        log('City Hall gates this upgrade. Raise CH first.');
+        return;
+      }
+      const cost = upgradeCost(key, next);
+      if(!canAfford(cost)){ log('Not enough resources for upgrade'); return; }
+      spend(cost);
+      state.buildings[key] = next;
+      recalcRates();
+      updateUI();
+      log(`${key} upgraded to L${next}`);
+    }
+
+    train(type, count){
+      if(state.buildings.barracks < 1){ log('Build a Barracks first'); return; }
+      const cost = { food: (trainCost[type].food||0)*count, wood: (trainCost[type].wood||0)*count };
+      if(!canAfford(cost)){ log('Not enough resources to train'); return; }
+      spend(cost);
+      state.army[type] += count;
+      updateUI();
+      log(`Trained ${count} ${type.toUpperCase()}`);
+    }
+
+    attackSelected(){
+      const sel = state.map.select;
+      if(!sel || sel.type!=='camp') return;
+      const camp = state.map.camps.find(c=>c.x===sel.x && c.y===sel.y);
+      if(!camp) return;
+      // compute power (simple)
+      const ourPower = state.army.inf*1.0 + state.army.arch*1.1 + state.army.cav*1.25;
+      const theirPower = camp.str;
+      const ratio = (ourPower + 1)/(theirPower + 1);
+      const ourLoss = Math.min(state.army.inf+state.army.arch+state.army.cav, Math.ceil(theirPower * (1/Math.max(ratio,0.1)) * 0.15));
+      const theirLoss = Math.ceil((state.army.inf+state.army.arch+state.army.cav) * Math.max(ratio,0.1) * 0.35);
+      // remove our losses
+      let rem = ourLoss;
+      const order = ['inf','arch','cav'];
+      for(const k of order){
+        const take = Math.min(state.army[k], rem); state.army[k]-=take; rem-=take;
+      }
+      // reduce camp
+      camp.str = Math.max(0, camp.str - theirLoss);
+      if(camp.str <= 0){
+        // reward loot and remove camp
+        const loot = {food:120, wood:120, stone:80, gold:20};
+        state.resources.food+=loot.food; state.resources.wood+=loot.wood; state.resources.stone+=loot.stone; state.resources.gold+=loot.gold;
+        state.map.camps = state.map.camps.filter(c=>!(c.x===camp.x && c.y===camp.y));
+        log(`Victory! Loot: +${loot.food}F +${loot.wood}W +${loot.stone}S +${loot.gold}G`);
+        state.map.select = null;
+        document.getElementById('attackBtn').disabled = true;
+      } else {
+        log(`Fight done. Our loss ${ourLoss}, Camp remains ${camp.str}`);
+      }
+      updateUI();
+    }
+  }
+
+  // Phaser config
+  const config = {
+    type: Phaser.AUTO,
+    parent: 'phaser',
+    width: GAME_W,
+    height: GAME_H,
+    backgroundColor: '#081026',
+    scene: [MainScene]
+  };
+  const game = new Phaser.Game(config);
+
+  // UI bindings & helpers outside scene
+  function updateUI(){
+    const r = state.resources, rate = state.rates, b = state.buildings, a = state.army;
+    document.getElementById('r-food').textContent = fmt(r.food);
+    document.getElementById('r-wood').textContent = fmt(r.wood);
+    document.getElementById('r-stone').textContent = fmt(r.stone);
+    document.getElementById('r-gold').textContent = fmt(r.gold);
+    document.getElementById('r-rate').textContent = `${fmt(rate.food)}/${fmt(rate.wood)}/${fmt(rate.stone)}/${fmt(rate.gold)}`;
+    document.getElementById('b-farm').textContent = b.farm;
+    document.getElementById('b-lumber').textContent = b.lumber;
+    document.getElementById('b-quarry').textContent = b.quarry;
+    document.getElementById('b-gold').textContent = b.gold;
+    document.getElementById('b-barracks').textContent = b.barracks;
+    document.getElementById('ch-level').textContent = b.cityhall;
+    document.getElementById('a-inf').textContent = a.inf;
+    document.getElementById('a-arch').textContent = a.arch;
+    document.getElementById('a-cav').textContent = a.cav;
+
+    const nf = upgradeCost('farm', b.farm+1);
+    document.getElementById('next-cost').textContent = `Next Farm: F${fmt(nf.food)} W${fmt(nf.wood)} S${fmt(nf.stone)} G${fmt(nf.gold)}`;
+
+    const tc = trainCost;
+    document.getElementById('train-cost').textContent = `Train 10: INF F${10*tc.inf.food}/W${10*tc.inf.wood}, ARCH F${10*tc.arch.food}/W${10*tc.arch.wood}, CAV F${10*tc.cav.food}/W${10*tc.cav.wood}`;
+
+    // update attack button state if selected camp exists
+    const sel = state.map.select;
+    document.getElementById('attackBtn').disabled = !(sel && sel.type==='camp');
+  }
+
+  function log(msg){ const el = document.getElementById('scoutBtn'); /* reuse as place to show small toasts */ console.log(msg); /* also console */ }
+
+  // helper cost function used above
+  function upgradeCost(key, lvl){ return upgradeCostImpl(key,lvl); }
+  function upgradeCostImpl(key,lvl){
+    const mul = 1 + (lvl-1)*0.33;
+    switch(key){
+      case 'cityhall': return {food:220*mul, wood:220*mul, stone:160*mul, gold:90*mul};
+      case 'farm': return {food:120*mul, wood:80*mul, stone:40*mul, gold:0};
+      case 'lumber': return {food:80*mul, wood:120*mul, stone:40*mul, gold:0};
+      case 'quarry': return {food:100*mul, wood:100*mul, stone:80*mul, gold:0};
+      case 'gold': return {food:120*mul, wood:120*mul, stone:60*mul, gold:40*mul};
+      case 'barracks': return {food:140*mul, wood:140*mul, stone:80*mul, gold:20*mul};
+    }
+    return {food:0,wood:0,stone:0,gold:0};
+  }
+
+  // initialize UI after page load
+  window.addEventListener('load', ()=> { recalcRates(); updateUI(); });
+  </script>
+</body>
 </html>
