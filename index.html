@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pocket RoK (Web)</title>
+    <style>
+      html, body { margin:0; padding:0; height:100%; background:#0f1221; color:#e9ecf1; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      #game { display:flex; height:100%; }
+      .sidebar { width:320px; background:#12162b; border-right:1px solid #1e2446; padding:12px; box-sizing: border-box; }
+      .panel { background:#0e1430; border:1px solid #20264c; border-radius:12px; padding:12px; margin-bottom:12px; }
+      .panel h3 { margin:0 0 8px 0; font-size:16px; letter-spacing:0.3px; }
+      .row { display:flex; align-items:center; justify-content:space-between; font-size:14px; margin:6px 0; }
+      button { width:100%; margin:6px 0; padding:10px 12px; border-radius:10px; border:1px solid #2a3770; background:#1a2558; color:#e9ecf1; cursor:pointer; }
+      button:disabled { opacity:0.6; cursor:not-allowed; }
+      .small { font-size:12px; opacity:0.8; }
+      a, a:visited { color:#86a1ff; }
+      .footer { font-size:12px; opacity:0.7; text-align:center; margin-top:8px; }
+      canvas { display:block; }
+    </style>
+  </head>
+  <body>
+    <div id="game">
+      <div class="sidebar">
+        <div class="panel" id="resources">
+          <h3>Resources</h3>
+          <div class="row"><span>Food</span><span id="r-food">0</span></div>
+          <div class="row"><span>Wood</span><span id="r-wood">0</span></div>
+          <div class="row"><span>Stone</span><span id="r-stone">0</span></div>
+          <div class="row"><span>Gold</span><span id="r-gold">0</span></div>
+          <div class="row small"><span>Prod/hr</span><span id="r-rate">0/0/0/0</span></div>
+          <button id="saveBtn">Save</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="panel" id="buildings">
+          <h3>City (CH <span id="ch-level">1</span>)</h3>
+          <div class="row"><span>Farm (L<span id="b-farm-lvl">1</span>)</span><button id="up-farm">Upgrade</button></div>
+          <div class="row"><span>Lumber (L<span id="b-lumber-lvl">1</span>)</span><button id="up-lumber">Upgrade</button></div>
+          <div class="row"><span>Quarry (L<span id="b-quarry-lvl">1</span>)</span><button id="up-quarry">Upgrade</button></div>
+          <div class="row"><span>Gold Mine (L<span id="b-gold-lvl">1</span>)</span><button id="up-gold">Upgrade</button></div>
+          <div class="row"><span>Barracks (L<span id="b-barracks-lvl">1</span>)</span><button id="up-barracks">Upgrade</button></div>
+          <button id="up-cityhall">Upgrade City Hall</button>
+          <div class="small" id="cost-text"></div>
+        </div>
+
+        <div class="panel" id="army">
+          <h3>Army</h3>
+          <div class="row"><span>Inf: <span id="a-inf">0</span></span><button id="t-inf">Train 10</button></div>
+          <div class="row"><span>Arch: <span id="a-arch">0</span></span><button id="t-arch">Train 10</button></div>
+          <div class="row"><span>Cav: <span id="a-cav">0</span></span><button id="t-cav">Train 10</button></div>
+          <div class="small" id="train-cost"></div>
+        </div>
+
+        <div class="panel" id="scout">
+          <h3>World</h3>
+          <button id="scoutBtn">Send Scout (Reveal)</button>
+          <div class="small">Click a revealed camp tile and press <b>Attack</b> below.</div>
+          <button id="attackBtn" disabled>Attack Camp</button>
+          <div class="small" id="battle-log"></div>
+        </div>
+
+        <div class="footer">Pocket RoK (Web) — Phaser.js single-file MVP</div>
+      </div>
+
+      <div id="phaser"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
